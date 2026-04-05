@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>shibuki</title>
+  <style>
+    body {
+      text-align: center;
+      margin-top: 50px;
+    }
+    #head {
+      width: 600px;
+    }
+    #hand {
+      width: 600px;
+      position: fixed;
+      pointer-events: none;
+    }
+    .container {
+      display: inline-block;
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+  <h1>여우신 머리 쓰다듬어주기</h1>
+  <div class="container">
+    <!-- ✅ 루트 기준 경로로 수정 -->
+    <img id="head" src="/head.png" alt="머리 이미지">
+    <img id="hand" src="/hand.png" alt="손 이미지">
+  </div>
+
+  <!-- ✅ 오디오도 루트 기준 경로 -->
+  <audio id="bg1" src="/background1.mp3"></audio>
+  <audio id="bg2" src="/background2.mp3"></audio>
+  <audio id="petSound" src="/bokbok.mp3"></audio>
+
+  <script>
+    const hand = document.getElementById("hand");
+    const head = document.getElementById("head");
+    const bg1 = document.getElementById("bg1");
+    const bg2 = document.getElementById("bg2");
+    const petSound = document.getElementById("petSound");
+
+    let audioStarted = false;
+    let bgInterval;
+    let bgTimeout;
+    let bg1Count = 0;
+
+    function playBg1() {
+      bg1.play();
+      bg1Count++;
+      if (bg1Count >= 3) {
+        bg1Count = 0;
+        setTimeout(() => {
+          bg2.play();
+        }, 10000);
+      }
+    }
+
+    function startBgLoop() {
+      playBg1();
+      bgInterval = setInterval(() => {
+        playBg1();
+      }, 10000);
+    }
+
+    function stopBgLoop() {
+      clearInterval(bgInterval);
+      bgInterval = null;
+      clearTimeout(bgTimeout);
+      bgTimeout = null;
+      bg1.pause();
+      bg1.currentTime = 0;
+      bg2.pause();
+      bg2.currentTime = 0;
+    }
+
+    function moveHand(x, y) {
+      const handWidth = hand.offsetWidth;
+      const handHeight = hand.offsetHeight;
+      hand.style.left = x - handWidth / 2 + "px";
+      hand.style.top = y - handHeight / 2 + "px";
+
+      const handRect = hand.getBoundingClientRect();
+      const headRect = head.getBoundingClientRect();
+
+      const overlap = !(handRect.right < headRect.left ||
+                        handRect.left > headRect.right ||
+                        handRect.bottom < headRect.top ||
+                        handRect.top > headRect.bottom);
+
+      if (overlap) {
+        stopBgLoop();
+        if (petSound.paused) {
+          petSound.play();
+        }
+      } else {
+        petSound.pause();
+        petSound.currentTime = 0;
+
+        if (!bgInterval && !bgTimeout) {
+          bgTimeout = setTimeout(() => {
+            startBgLoop();
+            bgTimeout = null;
+          }, 5000);
+        }
+      }
+    }
+
+    function initAudio() {
+      if (!audioStarted) {
+        audioStarted = true;
+        startBgLoop();
+      }
+    }
+
+    document.addEventListener("click", (e) => {
+      initAudio();
+      moveHand(e.clientX, e.clientY);
+    });
+
+    document.addEventListener("touchstart", (e) => {
+      initAudio();
+      const touch = e.touches[0];
+      moveHand(touch.clientX, touch.clientY);
+    });
+
+    document.addEventListener("mousemove", (e) => {
+      if (audioStarted) moveHand(e.clientX, e.clientY);
+    });
+
+    document.addEventListener("touchmove", (e) => {
+      if (audioStarted) {
+        const touch = e.touches[0];
+        moveHand(touch.clientX, touch.clientY);
+      }
+    });
+  </script>
+</body>
+</html>
